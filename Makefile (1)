@@ -1,0 +1,14 @@
+GPP=g++
+sources=main.cpp outils.cpp
+OBJ=$(sources:.cpp=.o) 
+
+all: line3
+
+line3: $(OBJ) outils.h
+	$(GPP) $(OBJ)  -o $@
+
+%.o:%.cpp
+	$(GPP) -c $< -o $@ 
+
+clean:
+	rm -rf *.o line3
