@@ -1,0 +1,14 @@
+GPP=g++
+sources=main.cpp
+OBJ=$(sources:.cpp=.o) 
+
+all: line4
+
+line4: $(OBJ)
+	$(GPP) $(OBJ)  -o $@
+
+%.o:%.cpp
+	$(GPP) -c $< -o $@ 
+
+clean:
+	rm -rf *.o line4
