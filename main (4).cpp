@@ -1,219 +1,113 @@
 #include <iostream>
+#include <iostream>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include "outils.h"
+#include <iterator>
+#include "wait.h"
+#include <stdio.h>
+#include <string.h>
+#include <dirent.h>
+#include <algorithm>
 
-int fichier(const std::string & fichier_i, std::vector<std::string> &x){
-              std::ifstream flux_lecture(fichier_i.c_str(),std::ios::in);
-              //test si le flux d'entrée échoue"
-        if(flux_lecture.fail()){
-            std::cerr<<"erreur a la lecture de "<<fichier_i<<std::endl;
-            return 1;}
-    x.clear();
-    std::string x_temp="";
-    std::string ligne;
-    //écriture dans le vecteur
-    while(std::getline(flux_lecture, ligne)){
-        if("text "!=ligne.substr(0,5)){;
-           std::cerr<<"le fichier n'est pas un fichier texte \t"<<fichier_i<<std::endl;
-        return 1;}
-            ligne=ligne.substr(6, ligne.size());
-            std::istringstream iss(ligne.c_str());
-            while(iss>>x_temp){
-                x.push_back(x_temp);
-            }
-        }
-flux_lecture.close();
-    return 0;
-   }
-   
-   
-int read_poly(const std::string & fichier_i,
-              std::vector<double> &x,
-              std::vector<double> &y){
-    std::ifstream flux(fichier_i.c_str(),std::ios::in);
-    //test si le flux d'entrée échoue"
-    if(flux.fail()){std::cerr<<"erreur dans la lecture de"<<fichier_i<<std::endl; return 1;}
-    x.clear();
-    y.clear();
-    double x_temp=-666;
-    double y_temp=-666;
-    std::string ligne;
-    //écriture dans le vecteur
-    while(std::getline(flux, ligne)){
-        if(""==ligne){continue;}
-        if("Polyligne"!=ligne.substr(0,9)){
-           std::cerr<<"le fichier n'est pas un fichier polyligne \t"<<fichier_i<<std::endl;
-           return 1;}
-            ligne=ligne.substr(10, ligne.size());
-            std::istringstream iss(ligne.c_str());
-            while(iss>>x_temp>>y_temp){
-                x.push_back(x_temp);
-                y.push_back(y_temp);
-            }//end while iss>>
-    }//end while getline
+unsigned long long int taille(const std::string & fichier){
+     unsigned long long int size;
+    std::ifstream flux_lecture(fichier);
+    if(flux_lecture.fail()){
+                std::cerr<<"erreur a la lecture de "<<fichier<<std::endl;
+                return 1;
+
+    }
+    flux_lecture.seekg(0, std::ios::end);
+    size=flux_lecture.tellg();
+    flux_lecture.close();
+ //   std::cout << "Taille du fichier : " <<size << "octets." <<std::endl;
+    return size;
+
+}
+
+int getfiledir(const std::string directory, std::vector<std::string> vecldir){
+    vecldir.clear();
+    outils::GetDirectoryListing(vecldir, directory);
+    std::ifstream flux(directory);
+    if(flux.fail()){
+        std::cerr<<"le string"<<directory<<"n'est pas un dossier"<<std::endl;
+        return 1;
+    }
     flux.close();
     return 0;
 }
 
-int fichier_point(const std::string & fichier_i, std::vector<double> &x_point, std::vector<double> &y_point){
-    std::ifstream flux_lecture(fichier_i.c_str(),std::ios::in);
-    //test si le flux d'entrée échoue"
-    if(flux_lecture.fail()){std::cerr<<"erreur dans la lecture de"<<fichier_i<<std::endl; return 1;}
-flux_lecture.precision(12);
-    x_point.clear();
-    y_point.clear();
-    double x_tempoint=-666;
-    double y_tempoint=-666;
-    std::string ligne;
-    //écriture dans le vecteur
-    while(std::getline(flux_lecture, ligne)){
-if(""==ligne){continue;}
-if("Point"!=ligne.substr(0,5)){
-   std::cerr<<"le fichier n'est pas un fichier point \t"<<fichier_i<<std::endl;
-   return 1;}
-ligne=ligne.substr(6, ligne.size());
-std::cerr<<ligne<<std::endl;
-std::istringstream iss(ligne.c_str());
-while(iss>>x_tempoint>>y_tempoint){
-    x_point.push_back(x_tempoint);
-    y_point.push_back(y_tempoint);
-}
-    }
-    flux_lecture.close();
- return 0;
-}
+int getfileListing(std::vector<std::string>& vectlisting, std::string directory, std::string filter, bool recursively){
+    vectlisting.clear();
+    unsigned long long int i;
+    outils::GetFileListing(vectlisting, directory, filter, true);
+    for(i=0; i<vectlisting.size();i++){
+        if(outils::IsDirectoryExist(vectlisting[i])){
 
-// 0 ok 1 erreur
-int line(std::vector<double> x_poly,
-         std::vector<double> y_poly,
-         std::vector<double> x_point,
-         std::vector<double> y_point,
-         std::vector<std::string> x_text,
-       std::string fichier_json)
-{
-std::ofstream flux_sortie(fichier_json.c_str(),std::ios::out|std::ios::trunc);
-//test si le flux de sortie échoue"
-            if(flux_sortie.fail())
-            {
-            std::cerr<<"le fichier n'existe pas "<<fichier_json<<std::endl;
+            recursively=true;
+            outils::GetFileListing(vectlisting, vectlisting[i], filter, recursively);
             return 1;
         }
-flux_sortie.precision(12);
-            std::string begin="{\n"
-                              "\"type""\" "":" "\"Featurecollection""\" "",\n"
-                    "\"features""\" "":" "[";
-            flux_sortie<<begin;
-            std::string bodypoint="{\n" "\"type""\" "":" "\"Feature""\" ,\n" "\"geometry""\" "":" "{\n"
-                                  "\"type""\" "":" "\"Point""\" ""," "\"coordinates""\" "":" "[";
-            std::string end="\n]},\n},\n";
-            std::string bodypoly="{\n"
-                                   "\"type""\" "":" "\"Feature""\" ,\n" "\"geometry""\" "":" "{"
-"\"type""\" "":" "\"LineString""\"""," "\"coordinates""\" "":" "[";
-            std::string text="\"";
-            std::string bodytext="{\n"
-                                 "\"type""\"  "":" "\"Feature""\" ,\n"
-                    "\"name""\" "":" "{"
-                        "\"type""\" "":"  "\"name""\" ,\n"
-                         "\"name""\" "":"  "[";
-                       //écriture dans le flux des différentes données mise dans les vecteurs
-flux_sortie<<bodypoly;
 
-            for(unsigned long long int i=0;i<x_poly.size();i++){
-                flux_sortie<<"[";
-                flux_sortie<<x_poly[i];
-                flux_sortie<<",";
-                flux_sortie<<y_poly[i];
-                flux_sortie<<"]";
-                flux_sortie<<",";
-
-            }
-            flux_sortie<<end;
-
-            for(unsigned long long int k=0;k<x_point.size();k++)
-            {
-				flux_sortie<<bodypoint;
-                flux_sortie<<x_point[k];
-                flux_sortie<<",";
-                flux_sortie<<y_point[k];
-                flux_sortie<<end;
-            }
-            flux_sortie<<end;
-            for(unsigned long long int j=0;j<x_text.size();j++){
-                flux_sortie<<bodytext;
-                flux_sortie<<text;
-               flux_sortie<<x_text[j];
-               flux_sortie<<text;
-               flux_sortie<<end;
-}
-            flux_sortie<<"]}";
-flux_sortie.close();
-// getlin c'est bien mais si tu as que des espace et un ordre connu tu peux faire le bourrin
-return 0;
-}
-
-
-int main(int argc, char* argv[])
-{
-
-std::cerr.precision(12);
-
-std::vector<double> x_poligne;
-std::vector<double> y_poligne;
-std::vector<double> x_point1;
-std::vector<double> y_point1;
-std::vector<std::string> x_texte;
-for(int i=1;i<argc;i++){
-if(0!=read_poly(argv[1],
-          x_poligne,
-          y_poligne))
-{
-    std::cerr<<"erreur a la lecture du fichier "<<argv[1]<<std::endl;
-return 1;
-}
-std::cerr<<"polyligne"<<std::endl;
-for(unsigned long long int i=0;i<x_poligne.size();i++)
-{
-   std::cerr<<x_poligne[i]<<std::endl;
-   std::cerr<<y_poligne[i]<<std::endl;
-}
-std::cerr<<"-------------"<<std::endl;
-if(0!=fichier_point(argv[2],
-          x_point1,
-          y_point1))
-{
-    std::cerr<<"erreur a la lecture du fichier"<<std::endl;
-return 1;
-}
-std::cerr<<"point"<<std::endl;
-for(unsigned long long int j=0;j<x_point1.size();j++)
-{
-   std::cerr<<x_point1[j]<<std::endl;
-   std::cerr<<y_point1[j]<<std::endl;
-}
-std::cerr<<"-------------"<<std::endl;
-if(0!=fichier(argv[3],
-              x_texte)){
-        std::cerr<<"erreur a la lecture du fichier texte"<<std::endl;
-    return 1;
     }
-std::cerr<<"texte"<<std::endl;
-        for(unsigned long long int k=0;k<x_texte.size();k++)
-        {
-           std::cerr<<x_texte[k]<<std::endl;
-        std::cerr<<std::endl;
-        }
-std::cerr<<"-------------"<<std::endl;
+    recursively=false;
 
-std::cerr<<"tentative ecriture"<<std::endl;
-if(0!=line(x_poligne, y_poligne,x_point1,y_point1,x_texte,
-           argv[4]))
+    return 0;
+    }
+
+
+
+int main(int argc, char *argv[])
 {
-std::cerr<<"erreur a l execution de la fonction line"<<std::endl;
-return 1;
-}
-}
+    std::vector<unsigned long long int> vectsize;
+    std::vector<unsigned long long int> vectsize2;
+
+    if(argc!=2){std::cerr<<"attendu nom_exe dossier_in"<<std::endl;return 1;}
+    std::vector<std::string> vecldir;
+    std::vector<std::string> vecldir2;
+    std::vector<std::string> vectlisting;
+    std::vector<std::string> vectlisting2;
+    std::string filter="*.*";
+    int k=0;
+    bool recursively=true;
+    int size;
+    int size2;
+
+    std::vector<std::string> vectlisting_jc;
+
+   /*outils::GetFileListing(vectlisting_jc,"/home/devops/line/line","*.*",true);
+for(unsigned long int i=0;i<vectlisting_jc.size();i++)
+   {
+    std::cerr<<vectlisting_jc[i]<<std::endl;
+   }*/
+   //écriture des vecteurs dans le vecteur comparatif
+    getfileListing(vectlisting, argv[1],"*.*", true);
+    for(unsigned long long int i=0;i<vectlisting.size();i++){
+        vectsize.push_back(taille(vectlisting[i]));
+    }
+    sleep(15);
+   //écriture des vecteurs dans le vecteur comparatif
+    getfileListing(vectlisting2, argv[1], "*.*", true);
+    for(unsigned long long int j=0; j<vectlisting2.size();j++){
+        vectsize2.push_back(taille(vectlisting2[j]));
+
+        }
+        //compare la taille des vecteurs
+    if(vectsize.size()!=vectsize2.size()){
+
+        return 1;}
+
+    for(unsigned long long int val=0;val<vectsize.size();val++)
+    {//compare les différentes valeurs des vecteurs
+        if(vectsize[val]!=vectsize2[val]){
+            return 1;}
+    }
+   std::cerr<<"ok"<<std::endl;
+
     return 0;
 }
+
 

@@ -1,50 +1,123 @@
 #include <iostream>
+#include <iostream>
+#include <iostream>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <stdlib.h>
+#include <iterator>
+#include "wait.h"
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
-#include <sys/types.h>
-#include <stdlib.h>
+#include <algorithm>
 
-int main(int argc, char* argv[])
-{
-
-    std::ofstream flux_sortie(argv[1],std::ios::out|std::ios::trunc);
-    //test si le flux de sortie échoue"
-    if(flux_sortie.fail()){
-        std::cerr<<"le fichier n'existe pas "<<argv[1]<<std::endl;
-        return 1;
+int read_texte(const std::string & fichier_i,
+              std::vector<std::string> &x, std::string filter){
+    std::ifstream flux(fichier_i.c_str(),std::ios::in);
+    //test si le flux d'entrée échoue"
+     if(flux.fail()){std::cerr<<"erreur a la lecture de "<<fichier_i<<std::endl;return 1;}
+    x.clear();
+    std::string x_temp="";
+    std::string ligne;
+    filter="*.txt";
+    bool unit=false;
+    if(filter=="*.txt")
+        unit=true;
+    if(!unit){
+        std::cerr<<"le fichier n'est pas un texte \t"<<fichier_i<<std::endl;
+        return 1;}
+        //écriture dans le vecteur
+    while(std::getline(flux, ligne)){;
+            std::cerr<<ligne<<std::endl;
+            ligne=ligne.substr(5, ligne.size());
+            std::cerr<<ligne<<std::endl;
+            std::istringstream iss(ligne.c_str());
+            while(iss>>x_temp){
+                x.push_back(x_temp);
+            }
         }
 
-    flux_sortie.precision(12);
-    std::string bodysources="JSONCSV=../io\n"
-            "JSONCSVSOURCES=/home/devops/line/line/io/polyligneTest.csv\n"
-            "JSONPATA=/home/devops/line/line/pata\n"
-            "JSONPATASOURCES=$(foreach dir,$(JSONPATA),$(dir)/*.csv)\n"
-            "JSONTXT=/home/devops/line/line/cata\n"
-            "JSONTXTSOURCES=$(foreach dir,$(JSONTXT),$(dir)/*.txt)\n"
-            "EXEJSON=/home/devops/line/line/creation_json\n"
-            "EXEJSONSOURCES=$(foreach dir,$(EXEJSON),$(dir)/*.cpp)\n"
-            "JSON=/home/devops/line/line/js\n"
-            "GPP=g++\n"
-            "EXE=creation_json\n"
-            "ARGS=$(JSONCSVSOURCES) $(JSONPATA) $(JSONTXT) $(JSON)\n";
-           std::string bodymake= "all: run\n"
+    return 0;
+   }
 
-            "run: $(EXE)\n"
-                "\t./$(EXE) $(ARGS)\n"
-            "creation_json: creation_json.o\n"
-                "\t$(GPP) $< -o $@\n"
 
-            "creation_json.o: $(EXEJSONSOURCES)\n"
-                "\t$(GPP) -c $< -o $@ ";
-    flux_sortie<<bodysources;
-    flux_sortie<<bodymake;
-return 0;
+int read_makefile(const std::string & makefile){
+    std::ifstream flux(makefile.c_str(),std::ios::in);
+    //test si le flux d'entrée échoue"
+    if(flux.fail()){std::cerr<<"le makefile n'existe pas encore"<<makefile<<std::endl;return 1;}
+    return 0;
+}
+
+int read_exe(const std::string exe){
+    std::ifstream flux(exe.c_str(),std::ios::in);
+    //test si le flux d'entrée échoue"
+    if(flux.fail()){std::cerr<<"ce n'est pas un fichier executable"<<std::endl;return 1;}
+    return 0;
 }
 
 
+int line(const std::string & fichier, const std::string exe, const std::string makefile, const std::string fichier_json){
+    std::string s;
+    std::vector<std::string> vectstring;
+    if(0!=read_makefile(makefile)){
+        std::cerr<<"le fichier n'est pas un makefile"<<std::endl;
+        return 1;
+}
+    if(0!=read_texte(fichier, vectstring, s))
+    {
+        std::cerr<<"ce n'est pas le bon fichier"<<std::endl;
+        return 1;
+    }
+    if(0!=read_exe(exe)){
+        std::cerr<<"ce n'est pas un exécutable"<<std::endl;
+        return 1;
+}
+    std::ofstream flux_sortie(fichier_json.c_str(),std::ios::out|std::ios::trunc);
+
+                if(flux_sortie.fail())
+                {
+                std::cerr<<"le fichier n'existe pas "<<fichier_json<<std::endl;
+                return 1;
+
+            }
+    flux_sortie.precision(12);
+                std::string begin="{\n"
+
+                                  "\"type""\" "":" "\"Featurecollection""\" "",\n"
+                        "\"features""\" "":" "[";
+                std::string text="\"";
+                            std::string bodytext="{\n"
+                                                 "\"type""\"  "":" "\"Feature""\" ,\n"
+                                    "\"name""\" "":" "{"
+                                        "\"type""\" "":"  "\"name""\" ,\n"
+                                         "\"name""\" "":"  "[";
+//écriture dans le flux flux de sortie
+std::string end="\n]},\n},\n";
+                flux_sortie<<begin;
+    for(unsigned long long int i=0;i<vectstring.size();i++){
+        flux_sortie<<bodytext;
+                        flux_sortie<<text;
+                       flux_sortie<<vectstring[i];
+                       flux_sortie<<text;
+                       flux_sortie<<end;
+        }
+                    flux_sortie<<"]}";
+        flux_sortie.close();
+        return 0;
+    }
+
+
+
+int main(int argc, char* argv[])
+{
+    std::string filter;
+    std::vector<std::string> s;
+    for(int i=0;i<argc;i++){
+        read_texte(argv[1], s, filter);
+        read_exe(argv[2]);
+        read_makefile(argv[3]);
+        line(argv[1], argv[2], argv[3], argv[4]);
+    }
+    return 0;
+}
